@@ -5,6 +5,15 @@ const { loadConfig, saveConfig } = require('../config');
 
 const DEFAULT_DOTFILES_DIR = path.join(os.homedir(), '.dotfiles');
 
+/**
+ * Clones a remote dotfiles repository into a local directory and saves
+ * the configuration for future use with `dotpull pull`.
+ *
+ * @param {string} remoteUrl - The remote git URL to clone from.
+ * @param {object} [options={}] - Optional settings.
+ * @param {string} [options.dir] - Target directory. Defaults to ~/.dotfiles.
+ * @returns {Promise<{targetDir: string, remoteUrl: string}>}
+ */
 async function clone(remoteUrl, options = {}) {
   if (!remoteUrl || typeof remoteUrl !== 'string') {
     throw new Error('A remote URL is required');

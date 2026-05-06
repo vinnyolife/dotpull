@@ -1,49 +1,63 @@
-import { runGit } from '../git.js';
+import { runGit, isGitRepo } from '../git.js';
 import { loadConfig } from '../config.js';
 
-const DEFAULT_LIMIT = 10;
-
 /**
- * Show commit log for the dotfiles repo.
- * @param {object} options
- * @param {number} [options.limit] - Number of commits to show (default: 10)
- * @param {boolean} [options.oneline] - Show each commit on a single line
- * @param {string} [options.file] - Show commits touching a specific file
+ * Builds the git log argument list from CLI options.
+ * @param {object} opts
+ * @returns {string[]}
  */
-export async function logCommand(options = {}) {
-  const cfg = await loadConfig();
+export function buildLogArgs(opts = {}) {
+  const args = ['log', '--oneline'];
 
-  const limit = options.limit ? parseInt(options.limit, 10) : DEFAULT_LIMIT;
-
-  if (isNaN(limit) || limit < 1) {
-    throw new Error('--limit must be a positive integer');
+  if (opts.graph) {
+    args.push('--graph');
   }
 
-  const args = buildLogArgs({ ...options, limit });
-  const output = await runGit(args, cfg.repoPath);
-
-  if (!output || output.trim() === '') {
-    console.log('No commits yet.');
-    return;
+  if (opts.all) {
+    args.push('--all');
   }
 
-  console.log(output);
-}
-
-function buildLogArgs({ limit, oneline = false, file } = {}) {
-  const args = ['log', `-${limit}`];
-
-  if (oneline) {
-    args.push('--oneline');
-  } else {
-    args.push('--pretty=format:%C(yellow)%h%Creset %s %C(dim)(%cr) <%an>%Creset');
+  if (opts.stat) {
+    args.push('--stat');
   }
 
-  if (file) {
-    args.push('--', file);
+  if (opts.limit != null) {
+    args.push(`--max-count=${opts.limit}`);
+  }
+
+  if (opts.file) {
+    args.push('--');
+    args.push(opts.file);
   }
 
   return args;
 }
 
-export default logCommand;
+/**
+ * Runs git log in the configured dotfiles repo.
+ * @param {object} opts - CLI options passed from the log command handler
+ */
+export default async function log(opts = {}) {
+  const config = loadConfig();
+  const { repoPath } = config;
+
+  const isRepo = await isGitRepo(repoPath);
+  if (!isRepo) {
+    throw new Error(
+      `No git repository found at ${repoPath}. Run 'dotpull init' or 'dotpull clone' first.`
+    );
+  }
+
+  const args = buildLogArgs(opts);
+
+  try {
+    const output = await runGit(repoPath, args);
+    if (output && output.trim()) {
+      console.log(output.trim());
+    } else {
+      console.log('No commits found.');
+    }
+  } catch (err) {
+    throw new Error(`Failed to retrieve log: ${err.message}`);
+  }
+}

@@ -1,33 +1,36 @@
-import { runGit, isGitRepo } from '../git.js';
+import { runGit } from '../git.js';
 import { loadConfig } from '../config.js';
 
 /**
- * Shows the diff of uncommitted changes in the dotfiles repo.
- * @param {{ staged?: boolean }} options
- * @returns {Promise<{ diff: string, isEmpty: boolean }>}
+ * Show diff of uncommitted changes in the dotfiles repo.
+ * @param {object} options
+ * @param {boolean} [options.staged] - Show staged changes instead of unstaged
+ * @param {string} [options.file] - Limit diff to a specific file
  */
 export async function diffCommand(options = {}) {
-  const config = await loadConfig();
-  if (!config) {
-    throw new Error('No dotpull config found. Run `dotpull init` first.');
+  const cfg = await loadConfig();
+
+  const args = buildDiffArgs(options);
+  const output = await runGit(args, cfg.repoPath);
+
+  if (!output || output.trim() === '') {
+    console.log('No changes detected.');
+    return;
   }
 
-  const { repoPath } = config;
-
-  const repoExists = await isGitRepo(repoPath);
-  if (!repoExists) {
-    throw new Error('Not a git repository: ' + repoPath);
-  }
-
-  const args = ['diff'];
-  if (options.staged) {
-    args.push('--staged');
-  }
-
-  const { stdout } = await runGit(repoPath, args);
-
-  return {
-    diff: stdout,
-    isEmpty: stdout.trim().length === 0,
-  };
+  console.log(output);
 }
+
+function buildDiffArgs({ staged = false, file } = {}) {
+  if (file) {
+    return ['diff', 'HEAD', '--', file];
+  }
+
+  if (staged) {
+    return ['diff', '--staged'];
+  }
+
+  return ['diff', 'HEAD'];
+}
+
+export default diffCommand;

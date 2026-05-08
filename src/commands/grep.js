@@ -1,42 +1,62 @@
+import { runGit, isGitRepo } from '../git.js';
 import { loadConfig } from '../config.js';
-import { runGit } from '../git.js';
 
 /**
- * Build git grep argument array from options.
- * @param {object} opts
+ * Build args array for git grep command.
+ * @param {string} pattern - Search pattern
+ * @param {object} opts - Options
  * @returns {string[]}
  */
-export function buildGrepArgs(opts) {
-  if (!opts.pattern) throw new Error('search pattern is required');
-
+export function buildGrepArgs(pattern, opts = {}) {
   const args = ['grep'];
 
-  if (opts.ignoreCase) args.push('-i');
   if (opts.lineNumber) args.push('-n');
-  if (opts.count) args.push('--count');
-  if (opts.invert) args.push('-v');
-  if (opts.word) args.push('-w');
-  if (opts.fixedStrings) args.push('-F');
-  if (opts.extendedRegexp) args.push('-E');
-  if (opts.perlRegexp) args.push('-P');
-  if (opts.untracked) args.push('--untracked');
-  if (opts.recurseSubmodules) args.push('--recurse-submodules');
+  if (opts.ignoreCase) args.push('-i');
+  if (opts.filesOnly) args.push('-l');
+  if (opts.count) args.push('-c');
 
-  args.push(opts.pattern);
+  if (opts.and) {
+    args.push('-e', pattern, '--and', '-e', opts.and);
+  } else {
+    args.push(pattern);
+  }
 
-  if (opts.revision) args.push(opts.revision);
-
-  if (opts.pathspecs && opts.pathspecs.length > 0) {
-    args.push('--');
-    args.push(...opts.pathspecs);
+  if (opts.path) {
+    args.push('--', opts.path);
   }
 
   return args;
 }
 
-export async function grepCommand(opts) {
+/**
+ * Run git grep in the dotfiles repo.
+ * @param {string} pattern - Search pattern
+ * @param {object} opts - CLI options
+ */
+export async function grep(pattern, opts = {}) {
   const config = await loadConfig();
-  const args = buildGrepArgs(opts);
-  const output = await runGit(args, { cwd: config.repoPath });
-  if (output) process.stdout.write(output + '\n');
+  const { repoPath } = config;
+
+  const isRepo = await isGitRepo(repoPath);
+  if (!isRepo) {
+    throw new Error('dotpull: not a git repository. Run `dotpull init` or `dotpull clone` first.');
+  }
+
+  const args = buildGrepArgs(pattern, opts);
+
+  try {
+    const output = await runGit(args, repoPath);
+    if (!output || output.trim() === '') {
+      console.log('No matches found.');
+    } else {
+      console.log(output);
+    }
+  } catch (err) {
+    // git grep exits with code 1 when no matches — treat as no matches
+    if (err.message && err.message.includes('exit code 1')) {
+      console.log('No matches found.');
+    } else {
+      throw err;
+    }
+  }
 }

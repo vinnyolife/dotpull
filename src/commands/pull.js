@@ -27,12 +27,16 @@ async function pull(options = {}) {
   );
   const commitsBehind = parseInt(revList.trim(), 10);
 
+  if (isNaN(commitsBehind)) {
+    throw new Error(`Could not determine commit distance from ${remote}/${branch}. Does the branch exist on the remote?`);
+  }
+
   if (commitsBehind === 0) {
     console.log('Already up to date.');
     return { pulled: false, reason: 'up_to_date' };
   }
 
-  // Merge fetched changes
+  // Merge fetched changes using fast-forward only to avoid unintended merges
   await runGit(['merge', '--ff-only', `${remote}/${branch}`], repoPath);
 
   console.log(`Pulled ${commitsBehind} new commit(s) from ${remote}/${branch}.`);

@@ -38,6 +38,12 @@ export async function resetCommand(options) {
     throw new Error('Hard reset is destructive. Pass --confirm to proceed.');
   }
 
+  // Warn if both a commit and files are specified with --hard or --soft,
+  // since git ignores the mode flags when resetting specific files.
+  if (options.files && options.files.length > 0 && (options.hard || options.soft || options.mixed)) {
+    console.warn('Warning: reset mode flags (--hard, --soft, --mixed) are ignored when resetting specific files.');
+  }
+
   const args = buildResetArgs(options);
   const result = await runGit(args, config.repoPath);
 

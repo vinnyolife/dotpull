@@ -1,7 +1,7 @@
 import { loadConfig } from '../config.js';
 import { runGit } from '../git.js';
 
-export function buildShortlogArgs(options = {}) {
+export function buildShortlogArgs(options) {
   const args = ['shortlog'];
 
   if (options.summary) {
@@ -20,12 +20,8 @@ export function buildShortlogArgs(options = {}) {
     args.push('--all');
   }
 
-  if (options.since) {
-    args.push(`--since=${options.since}`);
-  }
-
-  if (options.until) {
-    args.push(`--until=${options.until}`);
+  if (options.group) {
+    args.push(`--group=${options.group}`);
   }
 
   if (options.range) {
@@ -37,13 +33,11 @@ export function buildShortlogArgs(options = {}) {
 
 export async function shortlog(options = {}) {
   const config = await loadConfig();
-  const repoPath = config.repoPath;
-
-  if (!repoPath) {
-    throw new Error('No dotpull repo configured. Run `dotpull init` or `dotpull clone` first.');
+  if (!config.repoPath) {
+    throw new Error('No dotpull repo found. Run `dotpull init` or `dotpull clone` first.');
   }
 
   const args = buildShortlogArgs(options);
-  const output = await runGit(args, repoPath);
-  console.log(output);
+  const result = await runGit(args, config.repoPath);
+  console.log(result || 'No commits found.');
 }

@@ -53,6 +53,16 @@ describe('buildRebaseArgs', () => {
     const args = buildRebaseArgs({ branch: 'feature/x' });
     expect(args[args.length - 1]).toBe('feature/x');
   });
+
+  it('abort flag ignores other options like branch and interactive', () => {
+    const args = buildRebaseArgs({ abort: true, branch: 'main', interactive: true });
+    expect(args).toEqual(['rebase', '--abort']);
+  });
+
+  it('continue flag ignores other options like branch', () => {
+    const args = buildRebaseArgs({ continue: true, branch: 'main' });
+    expect(args).toEqual(['rebase', '--continue']);
+  });
 });
 
 describe('rebaseCommand', () => {

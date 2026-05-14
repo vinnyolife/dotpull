@@ -47,6 +47,21 @@ describe('push command', () => {
     );
   });
 
+  it('should use hostname-based default commit message when no message provided', async () => {
+    runGit
+      .mockResolvedValueOnce('')
+      .mockResolvedValueOnce('M .bashrc\n')
+      .mockResolvedValueOnce('')
+      .mockResolvedValueOnce('');
+
+    await push();
+
+    expect(runGit).toHaveBeenCalledWith(
+      ['commit', '-m', expect.stringContaining('test-machine')],
+      '/home/user/.dotfiles'
+    );
+  });
+
   it('should skip commit and push when working tree is clean', async () => {
     runGit
       .mockResolvedValueOnce('') // add -A

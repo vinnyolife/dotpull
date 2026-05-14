@@ -12,6 +12,7 @@ import { runGit } from '../git.js';
  */
 export function buildCheckoutArgs({ branch, create = false, detach = false, files = [] } = {}) {
   if (!branch) throw new Error('branch is required');
+  if (create && detach) throw new Error('create and detach options are mutually exclusive');
 
   const args = ['checkout'];
 

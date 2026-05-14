@@ -4,6 +4,13 @@ import { loadConfig } from '../config.js';
 /**
  * Build args for git clean command
  * @param {Object} options
+ * @param {boolean} [options.force] - Force deletion of untracked files
+ * @param {boolean} [options.dryRun] - Show what would be deleted without actually deleting
+ * @param {boolean} [options.directories] - Also remove untracked directories
+ * @param {boolean} [options.ignored] - Also remove ignored files
+ * @param {boolean} [options.onlyIgnored] - Remove only ignored files
+ * @param {boolean} [options.quiet] - Suppress output for removed files
+ * @param {string[]} [options.paths] - Limit cleaning to specific paths
  * @returns {string[]}
  */
 export function buildCleanArgs(options = {}) {
@@ -19,6 +26,10 @@ export function buildCleanArgs(options = {}) {
 
   if (options.directories) {
     args.push('-d');
+  }
+
+  if (options.ignored && options.onlyIgnored) {
+    throw new Error('Cannot use both --ignored and --only-ignored at the same time');
   }
 
   if (options.ignored) {

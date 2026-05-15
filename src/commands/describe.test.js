@@ -59,6 +59,14 @@ describe('buildDescribeArgs', () => {
     const args = buildDescribeArgs({ tags: true, long: true, abbrev: 8 });
     expect(args).toEqual(['describe', '--tags', '--long', '--abbrev=8']);
   });
+
+  it('does not add --tags when tags is false', () => {
+    expect(buildDescribeArgs({ tags: false })).not.toContain('--tags');
+  });
+
+  it('does not add --always when always is false', () => {
+    expect(buildDescribeArgs({ always: false })).not.toContain('--always');
+  });
 });
 
 describe('describe command', () => {
@@ -70,6 +78,16 @@ describe('describe command', () => {
 
     expect(runGit).toHaveBeenCalledWith(['describe', '--tags'], mockConfig.repoPath);
     expect(consoleSpy).toHaveBeenCalledWith('v1.2.3-4-gabcdef');
+    consoleSpy.mockRestore();
+  });
+
+  it('trims trailing newline from output', async () => {
+    runGit.mockResolvedValue('v2.0.0\n');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await describeCmd({});
+
+    expect(consoleSpy).toHaveBeenCalledWith('v2.0.0');
     consoleSpy.mockRestore();
   });
 
@@ -85,4 +103,3 @@ describe('describe command', () => {
     consoleSpy.mockRestore();
     exitSpy.mockRestore();
   });
-});

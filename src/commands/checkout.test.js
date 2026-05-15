@@ -36,6 +36,10 @@ describe('buildCheckoutArgs', () => {
   it('throws if no branch provided', () => {
     expect(() => buildCheckoutArgs({})).toThrow('branch is required');
   });
+
+  it('ignores files array when empty', () => {
+    expect(buildCheckoutArgs({ branch: 'main', files: [] })).toEqual(['checkout', 'main']);
+  });
 });
 
 describe('checkoutCommand', () => {
@@ -48,6 +52,14 @@ describe('checkoutCommand', () => {
   it('creates a new branch when --create is passed', async () => {
     await checkoutCommand({ branch: 'feature/x', create: true });
     expect(runGit).toHaveBeenCalledWith(mockConfig.repoPath, ['checkout', '-b', 'feature/x']);
+  });
+
+  it('logs the git output when checkout succeeds', async () => {
+    runGit.mockResolvedValue('Switched to branch \'main\'');
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await checkoutCommand({ branch: 'main' });
+    expect(consoleSpy).toHaveBeenCalledWith('Switched to branch \'main\'');
+    consoleSpy.mockRestore();
   });
 
   it('throws and logs error on git failure', async () => {
